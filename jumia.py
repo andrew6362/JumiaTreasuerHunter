@@ -1,70 +1,73 @@
 import requests,re,bs4,sys
-class searchphone:
-    rooturl="https://www.jumia.co.ke/"
+
+class searchitem:
     url=""
-    page=1
-    allcategories=[
-				    'sport-fitness',
-				    'home-living',
-                   'small-appliances',
-    				'women-s-fashion',
-                   'baby-kids-and-toys',
-                   'men-s-fashion',
-                   'mobile-phones',
-                   	'food-stuffs',
-    				'cooking-small-appliances',
-    				'fashion-accessories',
-    				'kitchen-dining',
-    				'video-audio',
-                   
-                   ];
-    categoryindex=0
-    categories=allcategories[1]
+    allcategorieslinks=[]
+    categoryindex=1
+    pageindex=1
 
-    def makeurl(self,index,page):
-        print(self.url)
-        self.url=self.rooturl+self.allcategories[self.categoryindex]+"/?page="+str(page);
 
-        self.process(url=self.url)
+    def process(self):
 
-    def __init__(self):
-        self.makeurl(index=self.categoryindex,page=self.page)
-
-    def process(self,url):
-        print(url)
-        pagerequest=requests.get(url)
-        requestdata=pagerequest.text
-        soups=bs4.BeautifulSoup(requestdata,"lxml")
+        pagerequest = requests.get(self.url)
+        requestdata = pagerequest.text
+        soups = bs4.BeautifulSoup(requestdata, "lxml")
         links = soups.select(".products > .sku > .link")
         for link in links:
-            if self.findphone(linkname=link.getText()):
-
-                print("found in ",self.categories,self.page,self.url)
+            if self.finditem(linkname=link.getText()):
+                print(self.url)
+                print("found in ", self.allcategorieslinks[self.categoryindex], self.pageindex)
                 sys.exit()
+        print(" Not found in ", self.url)
 
-        self.page+=1;
-        self.url="";
-
-        if self.categoryindex==8:
-            sys.exit()
-
-        if self.page==20 :
-            self.page=1;
-            self.categoryindex+=1
+        self.pageindex += 1
 
 
-        self.makeurl(index=self.categoryindex,page=self.page)
+        self.makeurl(self.pageindex)
 
-    def findphone(self,linkname):
-        print(linkname)
-        regex = re.compile(r' KSh 5 ')
+    def makeurl(self, page):
+        self.url = self.allcategorieslinks[self.categoryindex] + "?page="+str(page)
+        if self.pageindex>=25:
+            self.categoryindex += 1
+            self.pageindex=self.pageindex-25;
+
+        self.process()
+
+
+
+
+    def makecategories(self):
+        rooturl = "https://www.jumia.co.ke/"
+        categories = []
+        categorieslinks = []
+
+        data = requests.get(rooturl)
+        soups = bs4.BeautifulSoup(data.text, "lxml")
+        links = soups.select(".menu-items > .menu-item > .main-category")
+
+
+
+        for link in links:
+            self.allcategorieslinks.append(link.get('href'))
+
+        self.makeurl(self.pageindex)
+        self.process()
+
+
+    def finditem(self, linkname):
+        regex = re.compile(r'KSh 1 ')
         status = regex.search(linkname)
-        print(status)
         if status:
             return True
         else:
             return False
 
 
-s=searchphone()
+    def __init__(self):
+        self.makecategories()
 
+
+
+
+
+s=searchitem()
